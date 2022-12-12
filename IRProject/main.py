@@ -4,18 +4,16 @@
 # nltk.download('punkt')
 from nltk.corpus import stopwords
 
-# the positional index
-# positional index structure pos[term][numOfDocuments][doc_id] = list of postions
 positional_index = dict()
 
 # fileID used for detecting which file we work on
 fileID = 1
-
+numberOfFiles = 10
 
 # this functions read all txt data from specific folder and assing it to a data list
 def reading_files():
     # for i in range(numberOfFolders):
-    with open('D:\Python\ir/' + str(fileID) + '.txt', 'r') as file2:
+    with open('D:\Python\ir-workingProject\\files/' + str(fileID) + '.txt', 'r') as file2:
         # read file then convert it to lower case then split the string to list
         data = file2.read().lower().split()
     return data
@@ -23,20 +21,18 @@ def reading_files():
 
 # function that remove stop words except in and to ### work properly ###
 def remove_stop_words(data):
-    # Getting stop words and put it in a list
     my_stopwords = stopwords.words('english')
-    my_lst = ['in', 'to']
-    new_data = []
+    my_lst = ['in', 'to','where']
+    new_data = list()
     my_stopwords = [el for el in my_stopwords if el not in my_lst]
     for term in data:
-        if term not in my_stopwords:
+        if term not in my_stopwords and term != ' ':
             new_data.append(term)
-
     return new_data
 
 
 # trying to make a postion index
-def dictionaryTest(token):
+def PositionalIndexing(token):
     for pos, term in enumerate(token):
         # if term isn't exist in  pos_list
         if term not in positional_index:
@@ -59,60 +55,51 @@ def dictionaryTest(token):
                 positional_index[term][1][fileID] = [pos]
 
 
-# def searchDocument(searchPhrase):
-#     splitted = searchPhrase.split(' ')
-#     cleaned_data = remove_stop_words(splitted)
-#     getDocuments = dict()
-#     # getting that contains the kewords form the pos index
-#     for term in cleaned_data:
-#         if term in positional_index:
-#             getDocuments[term]= positional_index[term]
-#     # pos[term][numOfDocuments][doc_id]
-#     for term in range(len(getDocuments)):
-#         for num in range(len(term)):
-#
-# ###############################################3
-def phraseQuery(query):
-    # splitting and removing stop words
-    query = query.lower().split(' ')
-    cleaned_data = remove_stop_words(query)
-    # dictionary contains found document id's
-    resultDec = {}
-    # add found cleaned document id's  to a result list
-    for term in cleaned_data:
-        if term not in resultDec:
-            if term in positional_index:
-                resultDec[term] = []
-                resultDec[term].append(list(positional_index[term][1]))
-
-    # initialize variable to get matched documents
-    matchedDocuments = []
-    # if there's at least term after cleaning data enter the condition
-    if len(resultDec) >= 1:
-        # append the first item to the list
-        for term in resultDec:
-            matchedDocuments.append(resultDec[term][0])
-            break
-        # after appending len will be >= 2
-        if len(resultDec) >= 2:
-            # change doc to set to remove duplications and get the intersection of doc_id's then return the result
-            for doc in matchedDocuments:
-                for element in doc:
-                    for term in resultDec:
-                        doc = set(doc).intersection(resultDec[term][0])
-                        matchedDocuments = list(doc)
-
-    else:
-        return 0
-
-    return matchedDocuments
 
 
-for i in range(3):
+def PhraseQuery(word):
+    # make empty list of lists in the size of number of files
+    semiFinalList = [[] for i in range(numberOfFiles + 1)]
+    # for every term in the query
+    for w in word:
+        # if the term in the keys of positional index do the following
+        if w in list(positional_index.keys()):
+            # loop in every document id
+            for key in list(positional_index[w][1].keys()):  # keys is the fileID'ss
+                # if final list in the position of document id is not empty do the following
+                if semiFinalList[key] != []:
+                    # if the postion last element in final list in a certain file == the position of currnt word in the same file  - 1 then it will match
+                    if semiFinalList[key][-1] == positional_index[w][1][key][0] - 1:
+                        semiFinalList[key].append(positional_index[w][1][key][0])  # appent the position to the final list
+
+                else:  # if the final list is empty then append the position of the keyword in the file
+                    semiFinalList[key].append(positional_index[w][1][key][0])
+        else:
+            continue
+    FinalList = dict()
+    for document, positions in enumerate(semiFinalList):
+        if len(positions) == len(word):
+            FinalList[document] = positions[0]
+    return FinalList
+def termFrequency():
+    tf = dict()
+    for term in positional_index:
+        tf[term] = [0 for i in range(numberOfFiles)]
+        for documentId in positional_index[term][1].keys():
+            tf[term][documentId-1] += 1
+
+    for term in tf:
+        print(term ,"           " , tf[term])
+
+for i in range(numberOfFiles):
     data = reading_files()
-    dictionaryTest(data)
+    data = remove_stop_words(data)
+    PositionalIndexing(data)
     fileID += 1
 print(positional_index)
+print(termFrequency())
 searchWord = input('please enter a searching word : ')
-matched_docs = phraseQuery(searchWord)
-print('docs are found in ',matched_docs)
+searchWord = remove_stop_words(searchWord.lower().split())
+print(PhraseQuery(searchWord))
+
+
