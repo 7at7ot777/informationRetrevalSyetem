@@ -2,6 +2,7 @@
 #
 # nltk.download('stopwords')
 # nltk.download('punkt')
+import pandas as pd
 from nltk.corpus import stopwords
 
 import math
@@ -19,8 +20,12 @@ idf = dict()
 df = dict()
 # compute TF-IDF
 tf_idf = dict()
-#tf idf document score
+# tf idf document score
 documentScore = dict()
+# get Normalized document Length = sqrt(tf_idf ^ 2 ) for all terms in a document
+documentLength = dict()
+# Normalized TFxIDF = TFxIDF / Document Length
+normalized_tf_idf = dict()
 
 # fileID used for detecting which file we work on
 fileID = 1
@@ -110,7 +115,7 @@ def termFrequency():  # Term Frequency TF : It's the number of times that a term
             term_frequency[term][documentId - 1] = len(positional_index[term][1][documentId])
 
     # for term in term_frequency:
-        # print(term, "           ", term_frequency[term])
+    # print(term, "           ", term_frequency[term])
 
 
 def logFrequencyWeightForTF():  # log the TF to damp it's effect
@@ -135,39 +140,74 @@ def computeDF():
     # use to know how many documents that 1 term is mentioned on it
     for term in positional_index:
         df[term] = positional_index[term][0]
+
+
 def computeIDF():
     for term in positional_index:
-        idf[term] = math.log10(numberOfFiles/df[term])
+        idf[term] = math.log10(numberOfFiles / df[term])
         # print('idf for the term : ',term,'is ' ,idf[term])
 
+
 def computeTFxIDF():
+    # for each term in weighted term frequency
     for term in weighted_term_frequency:
+        # make a value for each term = to number of files to make sure we have a list with indcies = number of files
         tf_idf[term] = [0] * numberOfFiles
-        i=0
+        i = 0  # reset the counter to zero // i explain its use below
         for value in weighted_term_frequency[term]:
+            # accessing each item in a list for each term
             tf_idf[term][i] = value * idf[term]
-            i+=1
-        print(term , tf_idf[term])
-# def scoreOfaDocument():
-#     # score based on summation of df idf
-#     for term in tf_idf:
-#         documentScore[term] = 0
-#         for value in tf_idf[term]:
-#             documentScore[term] += value
-#         print(term , documentScore[term])
+            i += 1  # i used in accessing each item in the list
+
+
+def DisplayTFxIDF():
+    # to show all the table details
+    pd.set_option('display.expand_frame_repr', False)
+    # to name the table rows before transpose
+    df = pd.DataFrame(tf_idf, [('doc ' + str(i)) for i in range(1, numberOfFiles + 1)])
+    print(df.transpose())
+
+
+def computeDocumentLength():
+    for i in range(numberOfFiles):
+        sum = 0.0
+        for term in tf_idf:
+            sum += pow(tf_idf[term][i], 2.0)
+        documentLength[i + 1] = math.sqrt(sum)
+        # print(i+1 ,documentLength[i+1])
+
+
+def displayDocumentLength():
+    for term in documentLength:
+        print(term, documentLength[term])
+
+
+def displayNormalizedTFxIDF():
+    for term in tf_idf:
+        normalized_tf_idf[term] = [0] * numberOfFiles
+        i = 0
+        for value in tf_idf[term]:
+            normalized_tf_idf[term][i] = value / documentLength[i + 1]
+            i += 1
+        print(normalized_tf_idf[term])
+
 
 for i in range(numberOfFiles):
     data = reading_files()
     data = remove_stop_words(data)
     PositionalIndexing(data)
     fileID += 1
-print(positional_index)
-print(termFrequency())
+# print(positional_index)
+termFrequency()
 logFrequencyWeightForTF()
 computeDF()
 computeIDF()
 computeTFxIDF()
+# DisplayTFxIDF()
+computeDocumentLength()
+# displayDocumentLength()
+displayNormalizedTFxIDF()
 # scoreOfaDocument()
-searchWord = input('please enter a searching word : ')
-searchWord = remove_stop_words(searchWord.lower().split())
-print(PhraseQuery(searchWord))
+# searchWord = input('please enter a searching word : ')
+# searchWord = remove_stop_words(searchWord.lower().split())
+# print(PhraseQuery(searchWord))
