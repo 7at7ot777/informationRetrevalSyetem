@@ -55,11 +55,11 @@ def remove_stop_words(data):
 
 # trying to make a postion index
 def PositionalIndexing(token):
-    for pos, term in enumerate(token):
+    for pos, term in enumerate(token):  # position value
         # if term isn't exist in  pos_list
         if term not in positional_index:
             # initializing a list
-            positional_index[term] = []
+            positional_index[term] = []  # in key we put term name # we assign an empty list in value
             # the frequency of document is one because we have just created it once we find it
             positional_index[term].append(1)
             # initializing the doc_id-positions dictionary
@@ -73,13 +73,15 @@ def PositionalIndexing(token):
                 positional_index[term][1][fileID].append(pos)
             # if the file id doesn't exist
             else:
+                # increase document frequency by 1
                 positional_index[term][0] = positional_index[term][0] + 1
+                # then append document frequency
                 positional_index[term][1][fileID] = [pos]
 
 
-def PhraseQuery(word):
+def PhraseQuery(word):  # phrase => documentID's , positions
     # make empty list of lists in the size of number of files
-    semiFinalList = [[] for i in range(numberOfFiles + 1)]
+    semiFinalList = [[] for i in range(numberOfFiles + 1)]  # [[4 , 5], [7, 8] ]
     # for every term in the query
     for w in word:
         # if the term in the keys of positional index do the following
@@ -91,7 +93,7 @@ def PhraseQuery(word):
                     # if the postion last element in final list in a certain file == the position of currnt word in the same file  - 1 then it will match
                     if semiFinalList[key][-1] == positional_index[w][1][key][0] - 1:
                         semiFinalList[key].append(
-                            positional_index[w][1][key][0])  # appent the position to the final list
+                            positional_index[w][1][key][0])  # append the position to the final list
 
                 else:  # if the final list is empty then append the position of the keyword in the file
                     semiFinalList[key].append(positional_index[w][1][key][0])
@@ -108,8 +110,8 @@ def termFrequency():  # Term Frequency TF : It's the number of times that a term
     # loop in each term in positional index
     for term in positional_index:
         # create a list contain 0's and it's size = to number of files
-        term_frequency[term] = [0 for i in range(numberOfFiles)]
-        # foreach term, loop on it's document id which is the key
+        term_frequency[term] = [0 for i in range(numberOfFiles)]  # term_frequency['ahemd'] = [0,0,0,0,0,0,0,0,0]
+        # foreach term, loop on its document id which is the key
         for documentId in positional_index[term][1].keys():
             # count the number of occurence of the term in one document
             term_frequency[term][documentId - 1] = len(positional_index[term][1][documentId])
@@ -145,7 +147,7 @@ def computeDF():
 def computeIDF():
     for term in positional_index:
         idf[term] = math.log10(numberOfFiles / df[term])
-        # print('idf for the term : ',term,'is ' ,idf[term])
+        # print('idf for the term : ', term, 'is ', idf[term])
 
 
 def computeTFxIDF():
@@ -182,15 +184,79 @@ def displayDocumentLength():
         print(term, documentLength[term])
 
 
-def displayNormalizedTFxIDF():
+def NormalizedTFxIDF():
     for term in tf_idf:
         normalized_tf_idf[term] = [0] * numberOfFiles
         i = 0
         for value in tf_idf[term]:
-            normalized_tf_idf[term][i] = value / documentLength[i + 1]
+            normalized_tf_idf[term][i] = value / documentLength[(i + 1)]
             i += 1
-        print(normalized_tf_idf[term])
+        # print(normalized_tf_idf[term])
 
+
+def computeCosineSimmilarity(query, matched_docs_id):
+    table_data = dict()
+    # TF of a query
+    query_tf = dict()
+    for term in query:
+        if term in query_tf.keys():
+            query_tf[term] += 1
+        else:
+            query_tf[term] = 1
+    # computer Wtf for a query
+    query_wtf = dict()
+    query_idf = dict()
+    for term in query:
+        if query_tf[term] == 1 or query_tf[term] == 0:
+            query_wtf[term] = query_tf[term]
+        else:
+            query_wtf[term] = 1 + math.log10(query_tf[term])
+
+        # get idf for a terms
+        query_idf[term] = idf[term]
+
+    # calculate query length
+    queryLength = 0.0
+    for term in query_wtf:
+
+        queryLength += pow((query_wtf[term] * query_idf[term]), 2)
+    queryLength = math.sqrt(queryLength)
+    # calculate Normalized Query
+    NormalizedQuery = dict()
+    for term in query_tf:
+        NormalizedQuery[term] = query_wtf[term] * query_idf[term] / queryLength
+
+    # compute simmilarity
+    score = dict()
+    for docID in matched_docs_id:
+        score[docID]=0
+        for term in query:
+            table_data[term] = {'tf-raw': query_tf[term],'Normalied tf' : query_wtf[term] ,'idf':idf[term] ,'tf-idf':(query_wtf[term] * query_idf[term]) ,'Normalized tf-idf':(query_wtf[term] * query_idf[term] / queryLength)  }
+            score[docID] += NormalizedQuery[term] * normalized_tf_idf[term][docID-1]
+    table = pd.DataFrame(table_data)
+    print(table.transpose())
+
+    df = pd.DataFrame(score,['Simmilarity'])
+    print(df.transpose())
+    sortedDocs = sorted(score,key=score.get,reverse=True)
+    print('Simmilarity of  returned documents in descending order :')
+    for doc in sortedDocs:
+        print('Doc ' ,doc)
+
+
+
+
+# compute all values needed
+def computer():
+    termFrequency()
+    logFrequencyWeightForTF()
+    computeDF()
+    computeIDF()
+    computeTFxIDF()
+    computeDocumentLength()
+
+
+# ================================
 
 for i in range(numberOfFiles):
     data = reading_files()
@@ -198,16 +264,23 @@ for i in range(numberOfFiles):
     PositionalIndexing(data)
     fileID += 1
 # print(positional_index)
-termFrequency()
-logFrequencyWeightForTF()
-computeDF()
-computeIDF()
-computeTFxIDF()
-# DisplayTFxIDF()
-computeDocumentLength()
-# displayDocumentLength()
-displayNormalizedTFxIDF()
-# scoreOfaDocument()
-# searchWord = input('please enter a searching word : ')
-# searchWord = remove_stop_words(searchWord.lower().split())
+
+computer()
+
+NormalizedTFxIDF()
+
 # print(PhraseQuery(searchWord))
+query = 'antony brutus'
+
+# searchWord = input('please enter a searching word : ')
+searchWord = remove_stop_words(query.lower().split())
+matched_docs = PhraseQuery(searchWord)
+
+computeCosineSimmilarity(query.lower().split(), matched_docs)
+
+#
+# list = [
+#     ['term1',5,[['DocID1',0 ,  1 ,2 ,3 ], ['term_id',0 ,  1 ,2 ,3 ] ,['term_id',0 ,  1 ,2 ,3 ]]],
+#     ['term2',2,[['DocID2',0 ,  1 ,2 ,3 ] ,['term_id',0 ,  1 ,2 ,3 ]]],
+#     ['term3',3,[['DocID3',0 ,  1 ,2 ,3 ], ['term_id',0 ,  1 ,2 ,3 ] ,['term_id',0 ,  1 ,2 ,3 ]]],
+#    ]
