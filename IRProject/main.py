@@ -254,6 +254,7 @@ def computer():
     computeIDF()
     computeTFxIDF()
     computeDocumentLength()
+    NormalizedTFxIDF()
 
 
 # ================================
@@ -267,20 +268,13 @@ for i in range(numberOfFiles):
 
 computer()
 
-NormalizedTFxIDF()
 
-# print(PhraseQuery(searchWord))
-query = 'antony brutus'
 
-# searchWord = input('please enter a searching word : ')
+
+query =  input('please enter a searching word : ')
+
 searchWord = remove_stop_words(query.lower().split())
 matched_docs = PhraseQuery(searchWord)
-
 computeCosineSimmilarity(query.lower().split(), matched_docs)
 
-#
-# list = [
-#     ['term1',5,[['DocID1',0 ,  1 ,2 ,3 ], ['term_id',0 ,  1 ,2 ,3 ] ,['term_id',0 ,  1 ,2 ,3 ]]],
-#     ['term2',2,[['DocID2',0 ,  1 ,2 ,3 ] ,['term_id',0 ,  1 ,2 ,3 ]]],
-#     ['term3',3,[['DocID3',0 ,  1 ,2 ,3 ], ['term_id',0 ,  1 ,2 ,3 ] ,['term_id',0 ,  1 ,2 ,3 ]]],
-#    ]
+
